@@ -1,0 +1,16 @@
+# Python
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+.venv/
+.ruff_cache/
+Desktop.ini
+dist/
+.Python
+.eggs/
+*.egg
+env/
+.coverage
