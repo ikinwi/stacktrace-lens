@@ -97,52 +97,55 @@ def save_replay(trace: StackTrace, path: str, label: Optional[str] = None) -> Re
     ----------
     trace:  The parsed stack trace to persist.
     path:   Destination file path (will be created or overwritten).
-    label:  Optional human-readable name for this replay.
+    label:  Optional human-readable label for this replay record.
 
     Returns
     -------
-    The :class:`ReplayRecord` that was written.
+    ReplayRecord
+        The record that was written to disk, including the auto-generated
+        ``recorded_at`` timestamp.
+
+    Raises
+    ------
+    OSError
+        If the destination directory does not exist or is not writable.
     """
-    record = ReplayRecord(
-        trace=trace,
-        label=label,
-        recorded_at=datetime.now(tz=timezone.utc).isoformat(),
-    )
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    recorded_at = datetime.now(timezone.utc).isoformat()
+    record = ReplayRecord(trace=trace, label=label, recorded_at=recorded_at)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(record.to_dict(), fh, indent=2)
     return record
 
 
 def load_replay(path: str) -> ReplayRecord:
-    """Load a replay file previously created by :func:`save_replay`.
+    """Load a replay record from a JSON file previously written by :func:`save_replay`.
+
+    Parameters
+    ----------
+    path:   Path to the JSON replay file.
+
+    Returns
+    -------
+    ReplayRecord
+        The deserialised record.
 
     Raises
     ------
-    FileNotFoundError  if *path* does not exist.
-    ValueError         if the file cannot be parsed.
+    FileNotFoundError
+        If *path* does not exist.
+    ValueError
+        If the file cannot be parsed as a valid replay record.
     """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Replay file not found: {path!r}")
     with open(path, "r", encoding="utf-8") as fh:
         try:
             data = json.load(fh)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid replay file '{path}': {exc}") from exc
-    return ReplayRecord.from_dict(data)
-
-
-def list_replays(directory: str) -> List[ReplayRecord]:
-    """Return all replay records found in *directory* (non-recursive).
-
-    Files that cannot be parsed are silently skipped.
-    """
-    records: List[ReplayRecord] = []
-    if not os.path.isdir(directory):
-        return records
-    for name in sorted(os.listdir(directory)):
-        if not name.endswith(".json"):
-            continue
-        try:
-            records.append(load_replay(os.path.join(directory, name)))
-        except (ValueError, KeyError):
-            pass
-    return records
+            raise ValueError(f"Invalid JSON in replay file {path!r}: {exc}") from exc
+    try:
+        return ReplayRecord.from_dict(data)
+    except KeyError as exc:
+        raise ValueError(
+            f"Replay file {path!r} is missing required field: {exc}"
+        ) from exc
