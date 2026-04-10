@@ -76,3 +76,13 @@ def test_colour_output_contains_escape_codes(mock_gl):
     af = annotate_frame(_frame(), AnnotationOptions(context_lines=2))
     result = _renderer(colour=True).render(af)
     assert "\033[" in result
+
+
+@patch("linecache.getline", side_effect=_fake_getline)
+def test_render_contains_line_numbers(mock_gl):
+    """Each rendered context line should include its line number."""
+    af = annotate_frame(_frame(), AnnotationOptions(context_lines=2))
+    result = _renderer().render(af)
+    # Lines 3-7 are in context; their line numbers should appear in the output.
+    for lineno in (3, 4, 5, 6, 7):
+        assert str(lineno) in result, f"Expected line number {lineno} in rendered output"
