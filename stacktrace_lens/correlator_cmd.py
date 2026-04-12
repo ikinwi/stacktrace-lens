@@ -30,6 +30,11 @@ def _build_subparser(subparsers: argparse._SubParsersAction) -> None:  # type: i
 
 
 def _read_trace(path: str) -> StackTrace | None:
+    """Read and parse a stack trace from *path* (or stdin when path is ``-``).
+
+    Returns ``None`` and prints a warning to stderr if the file cannot be read
+    or the content cannot be parsed as a valid stack trace.
+    """
     try:
         if path == "-":
             text = sys.stdin.read()
@@ -37,7 +42,11 @@ def _read_trace(path: str) -> StackTrace | None:
             with open(path, "r", encoding="utf-8") as fh:
                 text = fh.read()
         return parse_stacktrace(text)
-    except (OSError, ValueError):
+    except OSError as exc:
+        print(f"[warn] could not read file '{path}': {exc}", file=sys.stderr)
+        return None
+    except ValueError as exc:
+        print(f"[warn] could not parse trace from '{path}': {exc}", file=sys.stderr)
         return None
 
 
@@ -47,8 +56,6 @@ def correlator_command(args: argparse.Namespace) -> int:
         trace = _read_trace(path)
         if trace is not None:
             traces.append(trace)
-        else:
-            print(f"[warn] could not parse trace from: {path}", file=sys.stderr)
 
     if not traces:
         print("[error] no valid traces found.", file=sys.stderr)
