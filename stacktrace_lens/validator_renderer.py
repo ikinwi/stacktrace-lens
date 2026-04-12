@@ -50,8 +50,22 @@ class ValidatorRenderer:
         return "\n".join(lines)
 
     def render_all(self, reports: List[ValidationReport]) -> str:
+        """Render multiple reports separated by a divider.
+
+        Returns a summary footer showing how many reports passed and failed.
+        """
         if not reports:
             return self._yellow("No reports to display.")
         sections = [self.render(r) for r in reports]
         sep = "\n" + "-" * 60 + "\n"
-        return sep.join(sections)
+        body = sep.join(sections)
+
+        passed = sum(1 for r in reports if r.is_valid)
+        failed = len(reports) - passed
+        summary = self._bold(
+            f"Summary: {len(reports)} report(s) — "
+            + self._green(f"{passed} passed")
+            + ", "
+            + (self._red(f"{failed} failed") if failed else self._green("0 failed"))
+        )
+        return body + "\n" + "-" * 60 + "\n" + summary
