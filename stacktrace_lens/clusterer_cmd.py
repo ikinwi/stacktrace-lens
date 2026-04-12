@@ -35,6 +35,12 @@ def _build_subparser(sub: argparse._SubParsersAction) -> None:  # type: ignore[t
 
 
 def _load_traces(files: List[str]) -> List[StackTrace]:
+    """Read and parse stack traces from the given file paths.
+
+    Skips files whose content cannot be parsed as a valid stack trace and
+    prints a warning to stderr so the caller is aware of the omission.
+    Exits with status 1 if a file does not exist.
+    """
     traces: List[StackTrace] = []
     for path_str in files:
         p = Path(path_str)
@@ -45,6 +51,8 @@ def _load_traces(files: List[str]) -> List[StackTrace]:
         trace = parse_stacktrace(text)
         if trace is not None:
             traces.append(trace)
+        else:
+            print(f"warning: could not parse stack trace from '{path_str}', skipping", file=sys.stderr)
     return traces
 
 
