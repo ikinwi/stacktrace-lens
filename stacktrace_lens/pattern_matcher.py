@@ -35,6 +35,18 @@ class PatternMatchReport:
     def unmatched_count(self) -> int:
         return self.total_frames - self.matched_frames
 
+    def matches_for_label(self, label: str) -> List[MatchResult]:
+        """Return all matches that were assigned *label*."""
+        return [m for m in self.matches if m.label == label]
+
+    def labels(self) -> List[str]:
+        """Return the unique labels present in this report, in order of first appearance."""
+        seen: list = []
+        for m in self.matches:
+            if m.label not in seen:
+                seen.append(m.label)
+        return seen
+
 
 def _find_span(pattern: str, text: str) -> Optional[tuple]:
     try:
