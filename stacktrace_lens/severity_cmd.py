@@ -34,16 +34,26 @@ def _build_subparser(sub: ArgumentParser) -> None:
 _SEVERITY_ORDER = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 
-def severity_command(args: Namespace) -> int:
-    """Entry point for the severity sub-command. Returns an exit code."""
-    if args.file:
+def _read_input(file: Optional[str]) -> tuple[str, int]:
+    """Read stack trace text from a file path or stdin.
+
+    Returns a tuple of (text, exit_code). If exit_code is non-zero,
+    the caller should return it immediately.
+    """
+    if file:
         try:
-            text = open(args.file).read()
+            return open(file).read(), 0
         except OSError as exc:
             print(f"Error reading file: {exc}", file=sys.stderr)
-            return 1
-    else:
-        text = sys.stdin.read()
+            return "", 1
+    return sys.stdin.read(), 0
+
+
+def severity_command(args: Namespace) -> int:
+    """Entry point for the severity sub-command. Returns an exit code."""
+    text, exit_code = _read_input(getattr(args, "file", None))
+    if exit_code:
+        return exit_code
 
     if not text.strip():
         print("No input provided.", file=sys.stderr)
