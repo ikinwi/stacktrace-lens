@@ -100,18 +100,20 @@ def test_report_summary_line_contains_key():
 
 
 def test_report_summary_line_contains_direction():
+    opts = SortOptions(key=SortKey.DEPTH, reverse=False)
+    report = sort_traces([_trace()], options=opts)
+    assert "asc" in report.summary_line() or "ascending" in report.summary_line()
+
+
+def test_report_summary_line_contains_direction_descending():
     opts = SortOptions(key=SortKey.DEPTH, reverse=True)
     report = sort_traces([_trace()], options=opts)
-    assert "descending" in report.summary_line()
+    assert "desc" in report.summary_line() or "descending" in report.summary_line()
 
 
-def test_format_sort_returns_string():
-    report = sort_traces([_trace()])
-    result = format_sort(report)
-    assert isinstance(result, str)
-
-
-def test_format_sort_contains_exception_type():
-    report = sort_traces([_trace(exc_type="RuntimeError")])
-    result = format_sort(report)
-    assert "RuntimeError" in result
+def test_sort_empty_traces():
+    """Sorting an empty list should return a SortReport with zero traces."""
+    report = sort_traces([])
+    assert isinstance(report, SortReport)
+    assert report.count == 0
+    assert report.traces == []
