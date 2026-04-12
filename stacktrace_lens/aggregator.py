@@ -67,3 +67,18 @@ def format_aggregation(report: AggregationReport, top_n: int = 5) -> str:
     for func, count in report.function_counts.most_common(top_n):
         lines.append(f"  {func}: {count}")
     return "\n".join(lines)
+
+
+def filter_traces_by_exception(
+    traces: List[StackTrace], exception_type: str
+) -> List[StackTrace]:
+    """Return only the traces whose exception type matches *exception_type*.
+
+    The comparison is case-insensitive so callers do not need to worry about
+    exact casing (e.g. ``"valueerror"`` matches ``"ValueError"``).
+    """
+    needle = exception_type.lower()
+    return [
+        trace for trace in traces
+        if trace.exception_type and trace.exception_type.lower() == needle
+    ]
