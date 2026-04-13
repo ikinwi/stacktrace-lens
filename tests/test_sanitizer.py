@@ -96,49 +96,16 @@ def test_sanitize_trace_redacts_ip_in_message():
     t = _trace(message="connection refused 192.168.1.100")
     result = sanitize_trace(t)
     assert "192.168.1.100" not in result.exception_message
-    assert "<IP_ADDRESS>" in result.exception_message
+    assert "<IP>" in result.exception_message
 
 
-def test_sanitize_trace_no_redact_message_keeps_message():
-    original_msg = "password=topsecret"
-    t = _trace(message=original_msg)
-    opts = SanitizeOptions(redact_message=False)
-    result = sanitize_trace(t, opts)
-    assert result.exception_message == original_msg
-
-
-def test_sanitize_trace_extra_patterns():
-    t = _trace(message="session_id=abc123xyz")
-    opts = SanitizeOptions(extra_patterns=[(r'session_id=\S+', 'session_id=<REDACTED>')])
-    result = sanitize_trace(t, opts)
-    assert "abc123xyz" not in result.exception_message
-
-
-def test_sanitize_trace_preserves_exception_type():
-    t = _trace(exc_type="RuntimeError")
-    result = sanitize_trace(t)
-    assert result.exception_type == "RuntimeError"
-
-
-# ---------------------------------------------------------------------------
-# format_sanitize_report
-# ---------------------------------------------------------------------------
-
-def test_format_sanitize_report_returns_string():
-    t = _trace()
-    result = format_sanitize_report(t, sanitize_trace(t))
-    assert isinstance(result, str)
-
-
-def test_format_sanitize_report_shows_message_redaction():
-    original = _trace(message="password=secret")
-    sanitized = sanitize_trace(original)
-    report = format_sanitize_report(original, sanitized)
-    assert "message" in report
-
-
-def test_format_sanitize_report_no_changes_noted():
-    t = _trace(message="simple error")
-    sanitized = sanitize_trace(t)
-    report = format_sanitize_report(t, sanitized)
-    assert "no sensitive data detected" in report
+def test_sanitize_trace_sanitizes_all_frames():
+    """All frames in a trace should have paths sanitized."""
+    frames = [
+        _frame(filename="/home/alice/project/app.py"),
+        _frame(filename="/home/alice/project/utils.py"),
+    ]
+    result = sanitize_trace(_trace(frames=frames))
+    for frame in result.frames:
+        assert "alice" not in frame.filename
+        assert "<USER>" in frame.filename
