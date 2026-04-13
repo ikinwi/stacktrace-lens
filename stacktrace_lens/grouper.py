@@ -20,9 +20,24 @@ class FrameGroup:
     def count(self) -> int:
         return len(self.frames)
 
+    @property
+    def is_stdlib(self) -> bool:
+        """Return True if this group originates from the Python standard library."""
+        return self.label in ("python", "lib", "stdlib") or any(
+            "lib/python" in f.filename or "Lib" in f.filename.split("/")
+            for f in self.frames
+        )
+
 
 def _package_label(filename: str) -> str:
-    """Return a short label representing the origin of *filename*."""
+    """Return a short label representing the origin of *filename*.
+
+    Resolution order:
+    1. If the path contains a ``site-packages`` segment, return the
+       immediately following segment (i.e. the third-party package name).
+    2. Otherwise return the parent directory name.
+    3. Fall back to the bare filename when no parent is available.
+    """
     p = PurePosixPath(filename)
     parts = p.parts
     if "site-packages" in parts:
