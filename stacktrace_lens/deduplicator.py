@@ -80,8 +80,26 @@ def format_deduplicated(
         f = df.frame
         line = f'  File "{f.filename}", line {f.lineno}, in {f.function}'
         if df.is_repeated:
-            line += f"  {YELLOW}[repeated {df.count}×]{RESET}"
+            line += f"  {YELLOW}[repeated {df.count}\u00d7]{RESET}"
         lines.append(line)
         if f.code:
             lines.append(f"    {f.code}")
     return "\n".join(lines)
+
+
+def summary_stats(deduped: List[DeduplicatedFrame]) -> dict:
+    """Return basic statistics about a deduplicated frame list.
+
+    Returns a dict with:
+      - ``total_frames``: number of frames before deduplication (sum of counts).
+      - ``unique_frames``: number of distinct frame entries after deduplication.
+      - ``collapsed_frames``: number of frames that were collapsed (repeated ones).
+    """
+    total = sum(df.count for df in deduped)
+    unique = len(deduped)
+    collapsed = sum(df.count - 1 for df in deduped if df.is_repeated)
+    return {
+        "total_frames": total,
+        "unique_frames": unique,
+        "collapsed_frames": collapsed,
+    }
