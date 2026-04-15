@@ -46,6 +46,12 @@ class LayerReport:
             f"(bucket_size={self.bucket_size})"
         )
 
+    def largest_layer(self) -> DepthLayer | None:
+        """Return the depth layer containing the most frames, or None if empty."""
+        if not self.layers:
+            return None
+        return max(self.layers, key=lambda lay: lay.count)
+
 
 def _bucket_label(index: int, bucket_size: int) -> str:
     lo = (index // bucket_size) * bucket_size
@@ -54,7 +60,17 @@ def _bucket_label(index: int, bucket_size: int) -> str:
 
 
 def split_by_depth(trace: StackTrace, bucket_size: int = 5) -> LayerReport:
-    """Group frames into fixed-size depth buckets."""
+    """Group frames into fixed-size depth buckets.
+
+    Args:
+        trace: The parsed stack trace to split.
+        bucket_size: Number of consecutive frame indices per bucket.  Must be
+            at least 1.
+
+    Returns:
+        A :class:`LayerReport` whose ``layers`` list contains one
+        :class:`DepthLayer` per distinct bucket encountered in *trace*.
+    """
     if bucket_size < 1:
         raise ValueError("bucket_size must be >= 1")
 
