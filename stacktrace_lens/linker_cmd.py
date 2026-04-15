@@ -32,15 +32,26 @@ def _build_subparser(sub: argparse._SubParsersAction) -> argparse.ArgumentParser
     return p
 
 
-def linker_command(args: argparse.Namespace, out=sys.stdout, err=sys.stderr) -> int:
-    if args.file:
+def _read_input(file_path: str | None, err) -> tuple[str | None, int]:
+    """Read raw input from a file path or stdin.
+
+    Returns a tuple of (content, exit_code). If reading fails, content is None
+    and exit_code is non-zero.
+    """
+    if file_path:
         try:
-            raw = open(args.file).read()
+            return open(file_path).read(), 0
         except OSError as exc:
             print(f"error: {exc}", file=err)
-            return 1
-    else:
-        raw = sys.stdin.read()
+            return None, 1
+    return sys.stdin.read(), 0
+
+
+def linker_command(args: argparse.Namespace, out=sys.stdout, err=sys.stderr) -> int:
+    """Execute the 'link' sub-command: parse a stack trace and print frame URLs."""
+    raw, exit_code = _read_input(args.file, err)
+    if exit_code != 0:
+        return exit_code
 
     if not raw.strip():
         print("error: no input", file=err)
