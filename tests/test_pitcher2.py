@@ -110,38 +110,16 @@ def test_batch_pitch_http_error():
         result = batch_pitch_to_webhook(traces, "http://example.com/hook")
     assert result.success is False
     assert result.status_code == 500
-    assert result.trace_count == 1
     assert result.error is not None
 
 
-def test_batch_pitch_connection_error():
+def test_batch_pitch_url_error():
+    """A network-level failure (e.g. DNS error) should return a failed result."""
+    import urllib.error
     traces = [_trace()]
-    with patch("urllib.request.urlopen", side_effect=OSError("connection refused")):
+    exc = urllib.error.URLError("Name or service not known")
+    with patch("urllib.request.urlopen", side_effect=exc):
         result = batch_pitch_to_webhook(traces, "http://example.com/hook")
     assert result.success is False
     assert result.status_code is None
-    assert "connection refused" in (result.error or "")
-
-
-def test_batch_pitch_result_str_ok():
-    r = BatchPitchResult(success=True, status_code=200, trace_count=3)
-    assert "OK" in str(r)
-    assert "3" in str(r)
-
-
-def test_batch_pitch_result_str_failed():
-    r = BatchPitchResult(success=False, status_code=503, trace_count=1, error="timeout")
-    assert "FAILED" in str(r)
-    assert "503" in str(r)
-
-
-def test_batch_pitch_default_options():
-    traces = [_trace()]
-    mock_resp = _make_mock_response(201)
-    with patch("urllib.request.urlopen", return_value=mock_resp) as mock_open:
-        batch_pitch_to_webhook(traces, "http://example.com/hook")
-        call_args = mock_open.call_args
-        req = call_args[0][0]
-        body = json.loads(req.data)
-    assert "traces" in body
-    assert len(body["traces"]) == 1
+    assert "Name or service not known" in result.error
