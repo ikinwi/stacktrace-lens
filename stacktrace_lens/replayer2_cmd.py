@@ -21,6 +21,16 @@ def _build_subparser(sub: argparse.Action) -> argparse.ArgumentParser:  # type: 
 
 
 def _load_trace(path: str) -> StackTrace:
+    """Load a stack trace from a JSON file.
+
+    The JSON file is expected to contain a ``raw`` key whose value is the
+    raw stack trace string to be parsed.
+
+    Raises:
+        FileNotFoundError: If *path* does not exist.
+        KeyError: If the JSON object has no ``raw`` key.
+        json.JSONDecodeError: If the file is not valid JSON.
+    """
     data = json.loads(Path(path).read_text())
     raw = data.get("raw", "")
     return parse_stacktrace(raw)
@@ -37,6 +47,9 @@ def replayer2_command(args: argparse.Namespace, out=sys.stdout, err=sys.stderr) 
             traces.append(_load_trace(f))
         except FileNotFoundError:
             err.write(f"replay2: file not found: {f}\n")
+            return 1
+        except json.JSONDecodeError as exc:
+            err.write(f"replay2: invalid JSON in {f}: {exc}\n")
             return 1
         except Exception as exc:  # noqa: BLE001
             err.write(f"replay2: failed to load {f}: {exc}\n")
